@@ -1,0 +1,9 @@
+{
+  "domain": "smartthings_ac_windfree",
+  "name": "SmartThings AC Windfree",
+  "documentation": "https://github.com/earglass/hass-smartthings-windfreeac",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": ["@earglass"],
+  "version": "v0.0.1"
+}
