@@ -23,11 +23,14 @@ class SmartthingsApi:
         return url, request_headers
 
     @staticmethod
-    def send_command(api_key: str, device_id: str, command: str, arguments: json):
+    def send_command(api_key: str, device_id: str, command: str, arguments=None):
         # TODO: handling wrong/missing command
 
-        command_body = json.loads(command)
-        command_body["commands"][0]["arguments"] = arguments
+        if arguments:
+            command_body = json.loads(command)
+            command_body["commands"][0]["arguments"] = arguments
+        else:
+            command_body = command
         url, request_headers = SmartthingsApi.build_request_base(api_key, device_id, "/commands")
         resp = requests.post(
             url=url,

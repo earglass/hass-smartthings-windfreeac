@@ -14,7 +14,6 @@ from homeassistant.components.climate.const import (
     SWING_HORIZONTAL,
     SWING_BOTH,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     PRECISION_HALVES,
@@ -49,6 +48,11 @@ SUPPORTED_AC_OPTIONAL_MODES = [
 ]
 
 
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up the climate devices config entry."""
+    await async_setup_platform(hass, config_entry, async_add_entities)
+
+
 async def async_setup_platform(
         hass: HomeAssistant,
         config: ConfigType,
@@ -58,7 +62,10 @@ async def async_setup_platform(
     """Set up platform."""
     api_key = config.get(CONF_API_KEY)
     device_id = config.get(CONF_DEVICE_ID)
-    async_add_entities([SamsungAc(api_key, device_id)])
+    # Fetch latest states
+    states = await hass.async_add_executor_job(SmartthingsApi.update_states, api_key, device_id)
+
+    async_add_entities([SamsungAc(api_key, device_id, states)])
     # TODO: implement sensor for power consumption
 
 
@@ -87,14 +94,14 @@ class SamsungAc(ClimateEntity):
     # [ ] "supportedAcOptionalMode",  # "[\"off\",\"sleep\",\"quiet\",\"smart\",\"speed\",\"windFree\",
     #                                       \"windFreeSleep\"]"
 
-    def __init__(self, api_key, device_id) -> None:
-        """Initialize the heater."""
+    def __init__(self, api_key, device_id, states) -> None:
+        """Initialize the climate."""
         # TODO: implement -> SmartthingsApi.get_name()
         self._name = "Samsung AC"
         self._api_key = api_key
         self._device_id = device_id
         self._state = STATE_OFF
-        self._states = {}
+        self._states = states
 
     # @property
     # def name(self) -> str:
@@ -179,6 +186,7 @@ class SamsungAc(ClimateEntity):
         data = SmartthingsApi.update_states(api_key=self._api_key, device_id=self._device_id)
         for key, obj in data['main'].items():
             self._states[key] = json.loads(obj['value'])
+        _LOGGER.warning(self._states)
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set hvac mode."""
@@ -233,3 +241,7 @@ class SamsungAc(ClimateEntity):
             arguments=[fan_mode]
         )
         self.async_write_ha_state()
+
+    @property
+    def states(self):
+        return self._states
