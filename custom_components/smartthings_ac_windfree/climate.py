@@ -55,7 +55,6 @@ async def async_setup_entry(
         async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Demo climate devices config entry."""
-    name = entry.data[CONF_NAME]
     api_key = entry.data[CONF_API_KEY]
     device_id = entry.data[CONF_DEVICE_ID]
     async_add_entities([SamsungAc(api_key, device_id)])
