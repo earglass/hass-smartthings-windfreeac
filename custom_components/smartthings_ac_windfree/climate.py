@@ -1,6 +1,3 @@
-"""Support for Adax wifi-enabled home heaters."""
-from __future__ import annotations
-
 import json
 import logging
 from typing import Any, List
@@ -57,7 +54,6 @@ async def async_setup_platform(
         hass: HomeAssistant,
         config: ConfigType,
         async_add_entities: AddEntitiesCallback,
-        discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Set up platform."""
     api_key = config.get(CONF_API_KEY)
@@ -101,7 +97,11 @@ class SamsungAc(ClimateEntity):
         self._api_key = api_key
         self._device_id = device_id
         self._state = STATE_OFF
-        self._states = states
+        self._states = {}
+        for key, obj in states['main'].items():
+            if self._states[key] is str:
+                self._states[key] = json.loads(obj['value'])
+        _LOGGER.warning(self._states)
 
     # @property
     # def name(self) -> str:
@@ -185,8 +185,8 @@ class SamsungAc(ClimateEntity):
         """Get the latest data."""
         data = SmartthingsApi.update_states(api_key=self._api_key, device_id=self._device_id)
         for key, obj in data['main'].items():
-            self._states[key] = json.loads(obj['value'])
-        _LOGGER.warning(self._states)
+            if self._states[key] is str:
+                self._states[key] = json.loads(obj['value'])
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set hvac mode."""
