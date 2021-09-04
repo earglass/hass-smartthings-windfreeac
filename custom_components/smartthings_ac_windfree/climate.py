@@ -218,6 +218,13 @@ class SamsungAc(ClimateEntity):
                 device_id=self.device_id,
                 command=SmartthingsApi.COMMAND_SWITCH_OFF
             )
+        elif self.state == "off":
+            await SmartthingsApi.async_send_command(
+                session=self.websession,
+                api_key=self.api_key,
+                device_id=self.device_id,
+                command=SmartthingsApi.COMMAND_SWITCH_ON
+            )
         else:
             await SmartthingsApi.async_send_command(
                 session=self.websession,

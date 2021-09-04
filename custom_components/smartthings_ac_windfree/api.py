@@ -49,7 +49,7 @@ class SmartthingsApi:
         if arguments:
             command["commands"][0]["arguments"] = arguments
         url, request_headers = SmartthingsApi.build_request_base(api_key, device_id, "/commands")
-        async with session.post(url, data=command, headers=request_headers) as response:
+        async with session.post(url, json=command, headers=request_headers) as response:
             data = await response.json()
             if response.status != 200:
                 # TODO: throw error
@@ -83,8 +83,7 @@ class SmartthingsApi:
 
     @staticmethod
     def update_states(api_key: str, device_id: str):
-        SmartthingsApi.send_command(api_key, device_id, SmartthingsApi.COMMAND_REFRESH)
-
+        # SmartthingsApi.send_command(api_key, device_id, SmartthingsApi.COMMAND_REFRESH)  -> 409 'invalid device state'
         url, request_headers = SmartthingsApi.build_request_base(api_key, device_id, "/states")
         resp = requests.get(
             url=url,
@@ -96,8 +95,13 @@ class SmartthingsApi:
 
     @staticmethod
     async def async_update_states(session: ClientSession, api_key: str, device_id: str):
-        with await SmartthingsApi.async_send_command(session, api_key, device_id, SmartthingsApi.COMMAND_REFRESH):
-            url, request_headers = SmartthingsApi.build_request_base(api_key, device_id, "/states")
-            async with session.get(url, headers=request_headers) as response:
-                # TODO: error handling
-                return await response.json()
+        # await SmartthingsApi.async_send_command(  -> 409 'invalid device state'
+        #     session=session,
+        #     api_key=api_key,
+        #     device_id=device_id,
+        #     command=SmartthingsApi.COMMAND_REFRESH
+        # )
+        url, request_headers = SmartthingsApi.build_request_base(api_key, device_id, "/states")
+        async with session.get(url, headers=request_headers) as response:
+            # TODO: error handling
+            return await response.json()
