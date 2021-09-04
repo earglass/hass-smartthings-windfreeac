@@ -19,13 +19,13 @@ from homeassistant.const import (
     ATTR_TEMPERATURE,
     PRECISION_HALVES,
     TEMP_CELSIUS,
-    CONF_NAME,
     CONF_API_KEY,
     CONF_DEVICE_ID,
     STATE_OFF,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import DiscoveryInfoType, ConfigType
 
 from custom_components.smartthings_ac_windfree.api import SmartthingsApi
 
@@ -49,14 +49,15 @@ SUPPORTED_AC_OPTIONAL_MODES = [
 ]
 
 
-async def async_setup_entry(
+async def async_setup_platform(
         hass: HomeAssistant,
-        entry: ConfigEntry,
+        config: ConfigType,
         async_add_entities: AddEntitiesCallback,
+        discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
-    """Set up the Demo climate devices config entry."""
-    api_key = entry.data[CONF_API_KEY]
-    device_id = entry.data[CONF_DEVICE_ID]
+    """Set up platform."""
+    api_key = config.get(CONF_API_KEY)
+    device_id = config.get(CONF_DEVICE_ID)
     async_add_entities([SamsungAc(api_key, device_id)])
     # TODO: implement sensor for power consumption
 
