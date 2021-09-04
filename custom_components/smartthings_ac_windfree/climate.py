@@ -1,5 +1,6 @@
 import json
 import logging
+from abc import ABCMeta
 from typing import Any, List
 
 from homeassistant.components.climate import ClimateEntity
@@ -94,7 +95,7 @@ def process_json_states(data):
     return states
 
 
-class SamsungAc(ClimateEntity):
+class SamsungAc(ClimateEntity, metaclass=ABCMeta):
     """Representation of a heater."""
 
     _attr_supported_features = SUPPORT_FAN_MODE | SUPPORT_SWING_MODE | SUPPORT_TARGET_TEMPERATURE
@@ -230,7 +231,7 @@ class SamsungAc(ClimateEntity):
                 session=self.websession,
                 api_key=self.api_key,
                 device_id=self.device_id,
-                command=SmartthingsApi.COMMAND_FAN_MODE,
+                command=SmartthingsApi.COMMAND_AC_MODE,
                 arguments=[hvac_mode]
             )
         self.async_write_ha_state()
@@ -240,7 +241,7 @@ class SamsungAc(ClimateEntity):
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-        self._attr_current_temperature = self.states["coolingSetpoint"]
+        self._attr_target_temperature = temperature
         await SmartthingsApi.async_send_command(
             session=self.websession,
             api_key=self.api_key,
