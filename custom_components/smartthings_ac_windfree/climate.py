@@ -199,8 +199,8 @@ class SamsungAc(ClimateEntity):
 
     async def async_update(self) -> None:
         """Get the latest data."""
-        data = SmartthingsApi.update_states(api_key=self._api_key, device_id=self._device_id)
-        self._states = process_json_states(data)
+        states = await self.hass.async_add_executor_job(SmartthingsApi.update_states, self._api_key, self._device_id)
+        self._states = process_json_states(states)
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set hvac mode."""
@@ -215,7 +215,8 @@ class SamsungAc(ClimateEntity):
         if temperature is None:
             return
         self._attr_current_temperature = self._states["coolingSetpoint"]
-        SmartthingsApi.send_command(
+        await self.hass.async_add_executor_job(
+            SmartthingsApi.send_command,
             api_key=self._api_key,
             device_id=self._device_id,
             command=SmartthingsApi.COMMAND_TARGET_TEMPERATURE,
@@ -230,14 +231,16 @@ class SamsungAc(ClimateEntity):
 
         # TODO: remove workaround once windfree & optional modes become separate property
         if swing_mode == "windFree":
-            SmartthingsApi.send_command(
+            await self.hass.async_add_executor_job(
+                SmartthingsApi.send_command,
                 api_key=self._api_key,
                 device_id=self._device_id,
                 command=SmartthingsApi.COMMAND_OPTIONAL_MODE,
                 arguments=[swing_mode]
             )
         else:
-            SmartthingsApi.send_command(
+            await self.hass.async_add_executor_job(
+                SmartthingsApi.send_command,
                 api_key=self._api_key,
                 device_id=self._device_id,
                 command=SmartthingsApi.COMMAND_FAN_OSCILLATION_MODE,
@@ -248,7 +251,8 @@ class SamsungAc(ClimateEntity):
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set new fan mode."""
         self._attr_fan_mode = fan_mode
-        SmartthingsApi.send_command(
+        await self.hass.async_add_executor_job(
+            SmartthingsApi.send_command,
             api_key=self._api_key,
             device_id=self._device_id,
             command=SmartthingsApi.COMMAND_FAN_MODE,
