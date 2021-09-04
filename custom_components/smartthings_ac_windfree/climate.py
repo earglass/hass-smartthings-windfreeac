@@ -27,7 +27,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from api import SmartthingsApi
+from custom_components.smartthings_ac_windfree.api import SmartthingsApi
 
 _LOGGER = logging.getLogger(__name__)
 
