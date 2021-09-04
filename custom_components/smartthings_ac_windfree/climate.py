@@ -20,8 +20,9 @@ from homeassistant.const import (
     STATE_OFF,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import DiscoveryInfoType, ConfigType
+from homeassistant.helpers.typing import ConfigType
 
 from custom_components.smartthings_ac_windfree.api import SmartthingsApi
 
@@ -66,11 +67,18 @@ async def async_setup_platform(
     """Set up platform."""
     api_key = config.get(CONF_API_KEY)
     device_id = config.get(CONF_DEVICE_ID)
+    websession = async_get_clientsession(hass)
     # Fetch latest states
-    states = await hass.async_add_executor_job(SmartthingsApi.update_states, api_key, device_id)
-    name = await hass.async_add_executor_job(SmartthingsApi.get_name, api_key, device_id)
+    states = await SmartthingsApi.async_update_states(websession, api_key, device_id)
+    name = await SmartthingsApi.async_get_name(websession, api_key, device_id)
 
-    async_add_entities([SamsungAc(api_key, device_id, name, states)])
+    async_add_entities([SamsungAc(
+        api_key=api_key,
+        device_id=device_id,
+        name=name,
+        states=states,
+        websession=websession
+    )])
     # TODO: implement sensor for power consumption
 
 
@@ -111,28 +119,24 @@ class SamsungAc(ClimateEntity):
     # [ ] "supportedAcOptionalMode",  # "[\"off\",\"sleep\",\"quiet\",\"smart\",\"speed\",\"windFree\",
     #                                       \"windFreeSleep\"]"
 
-    def __init__(self, api_key, device_id, name, states) -> None:
+    def __init__(self, api_key, device_id, name, states, websession) -> None:
         """Initialize the climate."""
-        self._api_key = api_key
-        self._device_id = device_id
         self._state = STATE_OFF
-        self._states = process_json_states(states)
-        self._attr_name = name
-
-    # @property
-    # def name(self) -> str:
-    #     """Return the name of the device, if any."""
-    #     return self._name
+        self._attr_name = "samsungwindfree_" + name
+        self.api_key = api_key
+        self.device_id = device_id
+        self.states = process_json_states(states)
+        self.websession = websession
 
     @property
     def state(self) -> str:
         """Return the current state."""
-        return self._states["switch"]
+        return self.states["switch"]
 
     @property
     def swing_mode(self) -> str:
         """Return swing mode ie. fixed, vertical."""
-        return SWING_MODES_SAMSUNG_TO_HASS[self._states["fanOscillationMode"]]
+        return SWING_MODES_SAMSUNG_TO_HASS[self.states["fanOscillationMode"]]
 
     @property
     def swing_modes(self) -> List[str]:
@@ -147,7 +151,7 @@ class SamsungAc(ClimateEntity):
     @property
     def hvac_mode(self) -> str:
         """Return hvac operation ie. heat, cool mode."""
-        return self._states["airConditionerMode"]
+        return self.states["airConditionerMode"]
 
     @property
     def hvac_modes(self) -> List[str]:
@@ -158,67 +162,67 @@ class SamsungAc(ClimateEntity):
         # TODO: test if extra modes are passing
         # self._states["supportedAcModes"].remove("aIComfort")
         # self._states["supportedAcModes"].remove("wind")
-        self._states["supportedAcModes"].append("off")
-        return self._states["supportedAcModes"]
+        self.states["supportedAcModes"].append("off")
+        return self.states["supportedAcModes"]
 
-    # @property
-    # def icon(self) -> str:
-    #     """Return nice icon for heater."""
-    #     # TODO: icons for each HVAC mode
-    #     # if self.hvac_mode == HVAC_MODE_HEAT:
-    #     #     return "mdi:fire"
-    #     # if self.hvac_mode == HVAC_MODE_OFF:
-    #     #     return "mdi:fire"
-    #     return "mdi:radiator-off"
+    @property
+    def icon(self) -> str:
+        #     """Return nice icon for heater."""
+        #     # TODO: icons for each HVAC mode
+        #     # if self.hvac_mode == HVAC_MODE_HEAT:
+        #     #     return "mdi:fire"
+        #     # if self.hvac_mode == HVAC_MODE_OFF:
+        #     #     return "mdi:fire"
+        return "mdi:radiator-off"
 
     @property
     def current_temperature(self) -> float:
         """Return the current temperature."""
-        return float(self._states["temperature"])
+        return float(self.states["temperature"])
 
     @property
     def target_temperature(self) -> float:
         """Return the temperature we try to reach."""
-        return float(self._states["coolingSetpoint"])
+        return float(self.states["coolingSetpoint"])
 
     @property
     def fan_mode(self):
         """Return the fan setting."""
-        return self._states["fanMode"]
+        return self.states["fanMode"]
 
     @property
     def fan_modes(self):
         """Return the list of available fan modes."""
         # TODO: test if extra mode is passing
         # self._states["supportedAcFanModes"].remove("turbo")
-        return self._states["supportedAcFanModes"]
+        return self.states["supportedAcFanModes"]
 
     @property
     def current_humidity(self) -> int:
         """Return the current humidity."""
-        return int(self._states["humidity"])
+        return int(self.states["humidity"])
 
     async def async_update(self) -> None:
         """Get the latest data."""
-        states = await self.hass.async_add_executor_job(SmartthingsApi.update_states, self._api_key, self._device_id)
-        self._states = process_json_states(states)
+        states = await SmartthingsApi.async_get_name(self.websession, self.api_key, self.device_id)
+        self.states = process_json_states(states)
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set hvac mode."""
         self._attr_hvac_mode = hvac_mode
         # TODO: implement hvac command
         if hvac_mode == "off":
-            await self.hass.async_add_executor_job(
-                SmartthingsApi.send_command,
-                api_key=self._api_key,
-                device_id=self._device_id,
+            await SmartthingsApi.async_send_command(
+                session=self.websession,
+                api_key=self.api_key,
+                device_id=self.device_id,
                 command=SmartthingsApi.COMMAND_SWITCH_OFF
             )
         else:
-            await self.hass.async_add_executor_job(
-                SmartthingsApi.send_command,
-                api_key=self._api_key,
-                device_id=self._device_id,
+            await SmartthingsApi.async_send_command(
+                session=self.websession,
+                api_key=self.api_key,
+                device_id=self.device_id,
                 command=SmartthingsApi.COMMAND_FAN_MODE,
                 arguments=[hvac_mode]
             )
@@ -229,15 +233,14 @@ class SamsungAc(ClimateEntity):
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-        self._attr_current_temperature = self._states["coolingSetpoint"]
-        await self.hass.async_add_executor_job(
-            SmartthingsApi.send_command,
-            api_key=self._api_key,
-            device_id=self._device_id,
+        self._attr_current_temperature = self.states["coolingSetpoint"]
+        await SmartthingsApi.async_send_command(
+            session=self.websession,
+            api_key=self.api_key,
+            device_id=self.device_id,
             command=SmartthingsApi.COMMAND_TARGET_TEMPERATURE,
             arguments=[temperature]
         )
-
         self.async_write_ha_state()
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
@@ -246,18 +249,18 @@ class SamsungAc(ClimateEntity):
 
         # TODO: remove workaround once windfree & optional modes become separate property
         if swing_mode == "windFree":
-            await self.hass.async_add_executor_job(
-                SmartthingsApi.send_command,
-                api_key=self._api_key,
-                device_id=self._device_id,
+            await SmartthingsApi.async_send_command(
+                session=self.websession,
+                api_key=self.api_key,
+                device_id=self.device_id,
                 command=SmartthingsApi.COMMAND_OPTIONAL_MODE,
                 arguments=[swing_mode]
             )
         else:
-            await self.hass.async_add_executor_job(
-                SmartthingsApi.send_command,
-                api_key=self._api_key,
-                device_id=self._device_id,
+            await SmartthingsApi.async_send_command(
+                session=self.websession,
+                api_key=self.api_key,
+                device_id=self.device_id,
                 command=SmartthingsApi.COMMAND_FAN_OSCILLATION_MODE,
                 arguments=[swing_mode]
             )
@@ -266,15 +269,11 @@ class SamsungAc(ClimateEntity):
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set new fan mode."""
         self._attr_fan_mode = fan_mode
-        await self.hass.async_add_executor_job(
-            SmartthingsApi.send_command,
-            api_key=self._api_key,
-            device_id=self._device_id,
+        await SmartthingsApi.async_send_command(
+            session=self.websession,
+            api_key=self.api_key,
+            device_id=self.device_id,
             command=SmartthingsApi.COMMAND_FAN_MODE,
             arguments=[fan_mode]
         )
         self.async_write_ha_state()
-
-    @property
-    def states(self):
-        return self._states
