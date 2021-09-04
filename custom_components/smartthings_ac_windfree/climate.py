@@ -9,7 +9,7 @@ from homeassistant.components.climate.const import (
     SWING_OFF,
     SWING_VERTICAL,
     SWING_HORIZONTAL,
-    SWING_BOTH,
+    SWING_BOTH, SUPPORT_TARGET_TEMPERATURE,
 )
 from homeassistant.const import (
     ATTR_TEMPERATURE,
@@ -27,11 +27,18 @@ from custom_components.smartthings_ac_windfree.api import SmartthingsApi
 
 _LOGGER = logging.getLogger(__name__)
 
-SWING_MODES = {
+SWING_MODES_HASS_TO_SAMSUNG = {
     SWING_OFF: "fixed",
     SWING_VERTICAL: "vertical",
     SWING_HORIZONTAL: "horizontal",
     SWING_BOTH: "all",
+}
+
+SWING_MODES_SAMSUNG_TO_HASS = {
+    "fixed": SWING_OFF,
+    "vertical": SWING_VERTICAL,
+    "horizontal": SWING_HORIZONTAL,
+    "all": SWING_BOTH,
 }
 
 SUPPORTED_AC_OPTIONAL_MODES = [
@@ -54,6 +61,7 @@ async def async_setup_platform(
         hass: HomeAssistant,
         config: ConfigType,
         async_add_entities: AddEntitiesCallback,
+        discovery_info=None
 ) -> None:
     """Set up platform."""
     api_key = config.get(CONF_API_KEY)
@@ -65,10 +73,22 @@ async def async_setup_platform(
     # TODO: implement sensor for power consumption
 
 
+def process_json_states(data):
+    states = {}
+    for key, obj in data['main'].items():
+        try:
+            states[key] = json.loads(obj['value'])
+        except ValueError:
+            states[key] = obj['value']
+        except TypeError:
+            states[key] = obj['value']
+    return states
+
+
 class SamsungAc(ClimateEntity):
     """Representation of a heater."""
 
-    _attr_supported_features = SUPPORT_FAN_MODE | SUPPORT_SWING_MODE
+    _attr_supported_features = SUPPORT_FAN_MODE | SUPPORT_SWING_MODE | SUPPORT_TARGET_TEMPERATURE
     _attr_target_temperature_step = PRECISION_HALVES
     _attr_temperature_unit = TEMP_CELSIUS
 
@@ -97,11 +117,7 @@ class SamsungAc(ClimateEntity):
         self._api_key = api_key
         self._device_id = device_id
         self._state = STATE_OFF
-        self._states = {}
-        for key, obj in states['main'].items():
-            if self._states[key] is str:
-                self._states[key] = json.loads(obj['value'])
-        _LOGGER.warning(self._states)
+        self._states = process_json_states(states)
 
     # @property
     # def name(self) -> str:
@@ -116,17 +132,17 @@ class SamsungAc(ClimateEntity):
     @property
     def swing_mode(self) -> str:
         """Return swing mode ie. fixed, vertical."""
-        return SWING_MODES[self._states["fanOscillationMode"]]
+        return SWING_MODES_SAMSUNG_TO_HASS[self._states["fanOscillationMode"]]
 
     @property
     def swing_modes(self) -> List[str]:
         """Return the list of available swing modes.
 
-        Need to be a subset of HVAC_MODES.
+        Requires SUPPORT_SWING_MODE.
         """
         # TODO: remove workaround once windfree & optional modes become separate property
-        SWING_MODES["windFree"] = "windFree"
-        return list(SWING_MODES.keys())
+        # SWING_MODES["windFree"] = "windFree"
+        return list(SWING_MODES_HASS_TO_SAMSUNG.keys())
 
     @property
     def hvac_mode(self) -> str:
@@ -155,14 +171,14 @@ class SamsungAc(ClimateEntity):
     #     return "mdi:radiator-off"
 
     @property
-    def current_temperature(self) -> float | None:
+    def current_temperature(self) -> float:
         """Return the current temperature."""
-        return self._states["temperature"]
+        return float(self._states["temperature"])
 
     @property
-    def target_temperature(self) -> int | None:
+    def target_temperature(self) -> float:
         """Return the temperature we try to reach."""
-        return self._states["coolingSetpoint"]
+        return float(self._states["coolingSetpoint"])
 
     @property
     def fan_mode(self):
@@ -177,16 +193,14 @@ class SamsungAc(ClimateEntity):
         return self._states["supportedAcFanModes"]
 
     @property
-    def current_humidity(self) -> int | None:
+    def current_humidity(self) -> int:
         """Return the current humidity."""
-        return self._states["humidity"]
+        return int(self._states["humidity"])
 
     async def async_update(self) -> None:
         """Get the latest data."""
         data = SmartthingsApi.update_states(api_key=self._api_key, device_id=self._device_id)
-        for key, obj in data['main'].items():
-            if self._states[key] is str:
-                self._states[key] = json.loads(obj['value'])
+        self._states = process_json_states(data)
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set hvac mode."""
