@@ -42,6 +42,21 @@ class SmartthingsApi:
             pass
 
     @staticmethod
+    def get_name(api_key: str, device_id: str):
+        # TODO: handling wrong/missing command
+
+        url, request_headers = SmartthingsApi.build_request_base(api_key, device_id, "")
+        resp = requests.get(
+            url=url,
+            headers=request_headers
+        )
+
+        if resp.status_code != 200:
+            # TODO: throw error
+            pass
+        return resp.json()["label"]
+
+    @staticmethod
     def update_states(api_key, device_id):
         SmartthingsApi.send_command(api_key, device_id, SmartthingsApi.COMMAND_REFRESH)
 

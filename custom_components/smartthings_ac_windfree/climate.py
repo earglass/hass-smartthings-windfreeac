@@ -68,8 +68,9 @@ async def async_setup_platform(
     device_id = config.get(CONF_DEVICE_ID)
     # Fetch latest states
     states = await hass.async_add_executor_job(SmartthingsApi.update_states, api_key, device_id)
+    name = await hass.async_add_executor_job(SmartthingsApi.get_name, api_key, device_id)
 
-    async_add_entities([SamsungAc(api_key, device_id, states)])
+    async_add_entities([SamsungAc(api_key, device_id, name, states)])
     # TODO: implement sensor for power consumption
 
 
@@ -110,14 +111,13 @@ class SamsungAc(ClimateEntity):
     # [ ] "supportedAcOptionalMode",  # "[\"off\",\"sleep\",\"quiet\",\"smart\",\"speed\",\"windFree\",
     #                                       \"windFreeSleep\"]"
 
-    def __init__(self, api_key, device_id, states) -> None:
+    def __init__(self, api_key, device_id, name, states) -> None:
         """Initialize the climate."""
-        # TODO: implement -> SmartthingsApi.get_name()
-        self._name = "Samsung AC"
         self._api_key = api_key
         self._device_id = device_id
         self._state = STATE_OFF
         self._states = process_json_states(states)
+        self._attr_name = name
 
     # @property
     # def name(self) -> str:
@@ -158,6 +158,7 @@ class SamsungAc(ClimateEntity):
         # TODO: test if extra modes are passing
         # self._states["supportedAcModes"].remove("aIComfort")
         # self._states["supportedAcModes"].remove("wind")
+        self._states["supportedAcModes"].append("off")
         return self._states["supportedAcModes"]
 
     # @property
@@ -204,9 +205,23 @@ class SamsungAc(ClimateEntity):
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set hvac mode."""
-        # TODO: implement hvac command
-        # SmartthingsApi.send_command()
         self._attr_hvac_mode = hvac_mode
+        # TODO: implement hvac command
+        if hvac_mode == "off":
+            await self.hass.async_add_executor_job(
+                SmartthingsApi.send_command,
+                api_key=self._api_key,
+                device_id=self._device_id,
+                command=SmartthingsApi.COMMAND_SWITCH_OFF
+            )
+        else:
+            await self.hass.async_add_executor_job(
+                SmartthingsApi.send_command,
+                api_key=self._api_key,
+                device_id=self._device_id,
+                command=SmartthingsApi.COMMAND_FAN_MODE,
+                arguments=[hvac_mode]
+            )
         self.async_write_ha_state()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
