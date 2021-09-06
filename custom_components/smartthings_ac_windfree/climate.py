@@ -175,6 +175,8 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
         self.states = process_json_states(states)
 
         self._attr_name = "samsungwindfree_" + name
+        self._attr_min_temp = self.states["minimumSetpoint"]
+        self._attr_max_temp = self.states["maximumSetpoint"]
 
     @property
     def state(self) -> str:
@@ -199,7 +201,7 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
     @property
     def hvac_mode(self) -> str:
         """Return hvac operation ie. heat, cool mode."""
-        if self._attr_state == STATE_OFF:
+        if self.state == STATE_OFF:
             return "off"
         if self.states[SAMSUNGAC_HVAC_MODE] in HVAC_MODES_SAMSUNG_TO_HASS:
             return HVAC_MODES_SAMSUNG_TO_HASS[self.states[SAMSUNGAC_HVAC_MODE]]
@@ -259,7 +261,6 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
         """Get the latest data."""
         states = await SmartthingsApi.async_update_states(self.websession, self.api_key, self.device_id)
         self.states = process_json_states(states)
-        self._attr_hvac_action = HVAC_MODES_SAMSUNG_TO_HASS[self.states[SAMSUNGAC_HVAC_MODE]]
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set hvac mode."""
