@@ -177,6 +177,13 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
         self._attr_name = "samsungwindfree_" + name
 
     @property
+    def state(self) -> str:
+        """Return the current state."""
+        if self.states["switch"] == "on":
+            return STATE_ON
+        return STATE_OFF
+
+    @property
     def swing_mode(self) -> str:
         """Return swing mode ie. fixed, vertical."""
         return SWING_MODES_SAMSUNG_TO_HASS[self.states[SAMSUNGAC_SWING_MODE]]
