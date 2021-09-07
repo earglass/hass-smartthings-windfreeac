@@ -203,8 +203,8 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
     @property
     def hvac_mode(self) -> str:
         """Return hvac operation ie. heat, cool mode."""
-        if self.state == STATE_OFF:
-            return "off"
+        if self.states["switch"] == "off":
+            return HVAC_MODE_OFF
         if self.states[SAMSUNGAC_HVAC_MODE] in HVAC_MODES_SAMSUNG_TO_HASS:
             return HVAC_MODES_SAMSUNG_TO_HASS[self.states[SAMSUNGAC_HVAC_MODE]]
         return HVAC_MODE_AUTO
