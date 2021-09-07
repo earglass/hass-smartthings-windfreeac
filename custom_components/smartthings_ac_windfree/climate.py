@@ -182,9 +182,9 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
     @property
     def state(self) -> str:
         """Return the current state."""
-        if self.states["switch"] == "on":
-            return STATE_ON
-        return STATE_OFF
+        if self.states["switch"] == "off":
+            return STATE_OFF
+        return self.hvac_action
 
     @property
     def swing_mode(self) -> str:
