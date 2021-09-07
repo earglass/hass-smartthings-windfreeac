@@ -95,6 +95,7 @@ FAN_MODES_SAMSUNG_TO_HASS = {
 }
 
 SAMSUNGAC_HVAC_MODE = "airConditionerMode"
+SAMSUNGAC_OPTIONAL_MODE = "acOptionalMode"
 SAMSUNGAC_FAN_MODE = "fanMode"
 SAMSUNGAC_SWING_MODE = "fanOscillationMode"
 SAMSUNGAC_TARGET_TEMP = "coolingSetpoint"
@@ -244,7 +245,9 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
     @property
     def fan_mode(self):
         """Return the fan setting."""
-        if self.states["fanMode"] in FAN_MODES_SAMSUNG_TO_HASS:
+        if self.states[SAMSUNGAC_OPTIONAL_MODE] == FAN_MODES_HASS_TO_SAMSUNG[FAN_DIFFUSE]:
+            return FAN_DIFFUSE
+        if self.states[SAMSUNGAC_FAN_MODE] in FAN_MODES_SAMSUNG_TO_HASS:
             return FAN_MODES_SAMSUNG_TO_HASS[self.states[SAMSUNGAC_FAN_MODE]]
         return FAN_AUTO
 
