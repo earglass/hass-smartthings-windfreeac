@@ -15,7 +15,6 @@ from homeassistant.components.climate.const import (
     HVAC_MODE_OFF,
     HVAC_MODE_HEAT,
     HVAC_MODE_COOL,
-    HVAC_MODE_HEAT_COOL,
     HVAC_MODE_AUTO,
     HVAC_MODE_DRY,
     HVAC_MODE_FAN_ONLY,
@@ -32,7 +31,6 @@ from homeassistant.const import (
     CONF_API_KEY,
     CONF_DEVICE_ID,
     STATE_OFF,
-    STATE_ON,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -61,8 +59,7 @@ HVAC_MODES_HASS_TO_SAMSUNG = {
     HVAC_MODE_OFF: "off",
     HVAC_MODE_HEAT: "heat",
     HVAC_MODE_COOL: "cool",
-    HVAC_MODE_AUTO: "auto",
-    HVAC_MODE_HEAT_COOL: "aIComfort",
+    HVAC_MODE_AUTO: "aIComfort",
     HVAC_MODE_DRY: "dry",
 }
 
@@ -70,8 +67,7 @@ HVAC_MODES_SAMSUNG_TO_HASS = {
     "off": HVAC_MODE_OFF,
     "heat": HVAC_MODE_HEAT,
     "cool": HVAC_MODE_COOL,
-    "aIComfort": HVAC_MODE_HEAT_COOL,
-    "auto": HVAC_MODE_AUTO,
+    "aIComfort": HVAC_MODE_AUTO,
     "dry": HVAC_MODE_DRY,
     "wind": HVAC_MODE_FAN_ONLY,
 }
@@ -190,6 +186,8 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
     @property
     def swing_mode(self) -> str:
         """Return swing mode ie. fixed, vertical."""
+        if self.hvac_action == HVAC_MODE_AUTO:
+            return SWING_OFF
         return SWING_MODES_SAMSUNG_TO_HASS[self.states[SAMSUNGAC_SWING_MODE]]
 
     @property
@@ -198,6 +196,8 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
 
         Requires SUPPORT_SWING_MODE.
         """
+        if self.hvac_action == HVAC_MODE_AUTO:
+            return SWING_OFF
         return list(SWING_MODES_HASS_TO_SAMSUNG.keys())
 
     @property
@@ -245,6 +245,8 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
     @property
     def fan_mode(self):
         """Return the fan setting."""
+        if self.hvac_action == HVAC_MODE_AUTO:
+            return FAN_AUTO
         if self.states[SAMSUNGAC_OPTIONAL_MODE] == FAN_MODES_HASS_TO_SAMSUNG[FAN_DIFFUSE]:
             return FAN_DIFFUSE
         if self.states[SAMSUNGAC_FAN_MODE] in FAN_MODES_SAMSUNG_TO_HASS:
@@ -254,6 +256,8 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
     @property
     def fan_modes(self):
         """Return the list of available fan modes."""
+        if self.hvac_action == HVAC_MODE_AUTO:
+            return FAN_AUTO
         return list(FAN_MODES_HASS_TO_SAMSUNG.keys())
 
     @property
