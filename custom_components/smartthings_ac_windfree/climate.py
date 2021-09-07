@@ -62,6 +62,7 @@ HVAC_MODES_HASS_TO_SAMSUNG = {
     HVAC_MODE_HEAT: "heat",
     HVAC_MODE_COOL: "cool",
     HVAC_MODE_AUTO: "auto",
+    HVAC_MODE_HEAT_COOL: "aIComfort",
     HVAC_MODE_DRY: "dry",
 }
 
@@ -274,8 +275,7 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
             )
             self.schedule_update_ha_state(True)
             return
-        if self._attr_state == STATE_OFF:
-            self._attr_state = STATE_ON
+        if self.state == STATE_OFF:
             await SmartthingsApi.async_send_command(
                 session=self.websession,
                 api_key=self.api_key,
