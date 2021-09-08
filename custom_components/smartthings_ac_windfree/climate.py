@@ -1,7 +1,6 @@
 import json
 import logging
 from abc import ABCMeta
-from datetime import datetime
 from typing import Any, List
 
 from homeassistant.components.climate import ClimateEntity
@@ -60,7 +59,7 @@ HVAC_MODES_HASS_TO_SAMSUNG = {
     HVAC_MODE_OFF: "off",
     HVAC_MODE_HEAT: "heat",
     HVAC_MODE_COOL: "cool",
-    HVAC_MODE_AUTO: "aIComfort",
+    HVAC_MODE_AUTO: "auto",
     HVAC_MODE_DRY: "dry",
 }
 
