@@ -311,9 +311,9 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
             api_key=self.api_key,
             device_id=self.device_id,
             command=SmartthingsApi.COMMAND_TARGET_TEMPERATURE,
-            arguments=[temperature]
+            arguments=[int(temperature)]
         )
-        _LOGGER.debug("Set temp to " + temperature)
+        _LOGGER.debug("Set temp to " + str(temperature))
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         """Set new swing mode."""
