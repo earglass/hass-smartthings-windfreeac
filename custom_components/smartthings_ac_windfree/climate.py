@@ -263,6 +263,13 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
 
     async def async_update(self) -> None:
         """Get the latest data."""
+        await SmartthingsApi.async_send_command(
+            self.websession,
+            self.api_key,
+            self.device_id,
+            SmartthingsApi.COMMAND_REFRESH
+        )
+        _LOGGER.debug("Sent refresh command")
         states = await SmartthingsApi.async_update_states(self.websession, self.api_key, self.device_id)
         self.states = process_json_states(states)
         _LOGGER.debug("Updated data from API")
