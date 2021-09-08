@@ -1,6 +1,7 @@
 import json
 import logging
 from abc import ABCMeta
+from datetime import datetime
 from typing import Any, List
 
 from homeassistant.components.climate import ClimateEntity
@@ -186,8 +187,6 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
     @property
     def swing_mode(self) -> str:
         """Return swing mode ie. fixed, vertical."""
-        if self.hvac_action == HVAC_MODE_AUTO:
-            return SWING_OFF
         return SWING_MODES_SAMSUNG_TO_HASS[self.states[SAMSUNGAC_SWING_MODE]]
 
     @property
@@ -196,8 +195,6 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
 
         Requires SUPPORT_SWING_MODE.
         """
-        if self.hvac_action == HVAC_MODE_AUTO:
-            return SWING_OFF
         return list(SWING_MODES_HASS_TO_SAMSUNG.keys())
 
     @property
@@ -269,6 +266,7 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
         """Get the latest data."""
         states = await SmartthingsApi.async_update_states(self.websession, self.api_key, self.device_id)
         self.states = process_json_states(states)
+        _LOGGER.debug("Updated data from API")
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set hvac mode."""
@@ -280,7 +278,6 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
                 device_id=self.device_id,
                 command=SmartthingsApi.COMMAND_SWITCH_OFF
             )
-            self.schedule_update_ha_state(True)
             return
         if self.state == STATE_OFF:
             await SmartthingsApi.async_send_command(
@@ -296,7 +293,7 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
             command=SmartthingsApi.COMMAND_AC_MODE,
             arguments=[samsung_hvac_mode]
         )
-        self.schedule_update_ha_state(True)
+        _LOGGER.debug("Set hvac mode to " + samsung_hvac_mode)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
@@ -310,7 +307,7 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
             command=SmartthingsApi.COMMAND_TARGET_TEMPERATURE,
             arguments=[temperature]
         )
-        self.schedule_update_ha_state(True)
+        _LOGGER.debug("Set temp to " + temperature)
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         """Set new swing mode."""
@@ -322,7 +319,7 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
             command=SmartthingsApi.COMMAND_FAN_OSCILLATION_MODE,
             arguments=[samsung_swing_mode]
         )
-        self.schedule_update_ha_state(True)
+        _LOGGER.debug("Set swing mode to " + samsung_swing_mode)
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set new fan mode."""
@@ -343,4 +340,4 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
                 command=SmartthingsApi.COMMAND_FAN_MODE,
                 arguments=[samsung_fan_mode]
             )
-        self.schedule_update_ha_state(True)
+        _LOGGER.debug("Set fan mode to " + samsung_fan_mode)
