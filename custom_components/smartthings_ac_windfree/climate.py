@@ -263,87 +263,102 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
 
     async def async_update(self) -> None:
         """Get the latest data."""
-        await SmartthingsApi.async_send_command(
-            self.websession,
-            self.api_key,
-            self.device_id,
-            SmartthingsApi.COMMAND_REFRESH
-        )
-        _LOGGER.debug("Sent refresh command")
-        states = await SmartthingsApi.async_update_states(self.websession, self.api_key, self.device_id)
-        self.states = process_json_states(states)
-        _LOGGER.debug("Updated data from API")
+        try:
+            await SmartthingsApi.async_send_command(
+                self.websession,
+                self.api_key,
+                self.device_id,
+                SmartthingsApi.COMMAND_REFRESH
+            )
+            _LOGGER.debug("Sent refresh command")
+            states = await SmartthingsApi.async_update_states(self.websession, self.api_key, self.device_id)
+            self.states = process_json_states(states)
+            _LOGGER.debug("Updated data from API")
+        except Exception as e:
+            _LOGGER.exception(e)
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set hvac mode."""
         samsung_hvac_mode = HVAC_MODES_HASS_TO_SAMSUNG[hvac_mode]
-        if hvac_mode == "off":
+        try:
+            if hvac_mode == "off":
+                await SmartthingsApi.async_send_command(
+                    session=self.websession,
+                    api_key=self.api_key,
+                    device_id=self.device_id,
+                    request_payload=SmartthingsApi.COMMAND_SWITCH_OFF
+                )
+                return
+            if self.state == STATE_OFF:
+                await SmartthingsApi.async_send_command(
+                    session=self.websession,
+                    api_key=self.api_key,
+                    device_id=self.device_id,
+                    request_payload=SmartthingsApi.COMMAND_SWITCH_ON
+                )
             await SmartthingsApi.async_send_command(
                 session=self.websession,
                 api_key=self.api_key,
                 device_id=self.device_id,
-                command=SmartthingsApi.COMMAND_SWITCH_OFF
+                request_payload=SmartthingsApi.COMMAND_AC_MODE,
+                arguments=[samsung_hvac_mode]
             )
-            return
-        if self.state == STATE_OFF:
-            await SmartthingsApi.async_send_command(
-                session=self.websession,
-                api_key=self.api_key,
-                device_id=self.device_id,
-                command=SmartthingsApi.COMMAND_SWITCH_ON
-            )
-        await SmartthingsApi.async_send_command(
-            session=self.websession,
-            api_key=self.api_key,
-            device_id=self.device_id,
-            command=SmartthingsApi.COMMAND_AC_MODE,
-            arguments=[samsung_hvac_mode]
-        )
-        _LOGGER.debug("Set hvac mode to " + samsung_hvac_mode)
+            _LOGGER.debug("Set hvac mode to " + samsung_hvac_mode)
+        except Exception as e:
+            _LOGGER.exception(e)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-        await SmartthingsApi.async_send_command(
-            session=self.websession,
-            api_key=self.api_key,
-            device_id=self.device_id,
-            command=SmartthingsApi.COMMAND_TARGET_TEMPERATURE,
-            arguments=[int(temperature)]
-        )
-        _LOGGER.debug("Set temp to " + str(temperature))
+        try:
+            await SmartthingsApi.async_send_command(
+                session=self.websession,
+                api_key=self.api_key,
+                device_id=self.device_id,
+                request_payload=SmartthingsApi.COMMAND_TARGET_TEMPERATURE,
+                arguments=[int(temperature)]
+            )
+            _LOGGER.debug("Set temp to " + str(temperature))
+        except Exception as e:
+            _LOGGER.exception(e)
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         """Set new swing mode."""
         samsung_swing_mode = SWING_MODES_HASS_TO_SAMSUNG[swing_mode]
-        await SmartthingsApi.async_send_command(
-            session=self.websession,
-            api_key=self.api_key,
-            device_id=self.device_id,
-            command=SmartthingsApi.COMMAND_FAN_OSCILLATION_MODE,
-            arguments=[samsung_swing_mode]
-        )
-        _LOGGER.debug("Set swing mode to " + samsung_swing_mode)
+        try:
+            await SmartthingsApi.async_send_command(
+                session=self.websession,
+                api_key=self.api_key,
+                device_id=self.device_id,
+                request_payload=SmartthingsApi.COMMAND_FAN_OSCILLATION_MODE,
+                arguments=[samsung_swing_mode]
+            )
+            _LOGGER.debug("Set swing mode to " + samsung_swing_mode)
+        except Exception as e:
+            _LOGGER.exception(e)
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set new fan mode."""
         samsung_fan_mode = FAN_MODES_HASS_TO_SAMSUNG[fan_mode]
-        if samsung_fan_mode == "windFree":
-            await SmartthingsApi.async_send_command(
-                session=self.websession,
-                api_key=self.api_key,
-                device_id=self.device_id,
-                command=SmartthingsApi.COMMAND_OPTIONAL_MODE,
-                arguments=[samsung_fan_mode]
-            )
-        else:
-            await SmartthingsApi.async_send_command(
-                session=self.websession,
-                api_key=self.api_key,
-                device_id=self.device_id,
-                command=SmartthingsApi.COMMAND_FAN_MODE,
-                arguments=[samsung_fan_mode]
-            )
-        _LOGGER.debug("Set fan mode to " + samsung_fan_mode)
+        try:
+            if samsung_fan_mode == "windFree":
+                await SmartthingsApi.async_send_command(
+                    session=self.websession,
+                    api_key=self.api_key,
+                    device_id=self.device_id,
+                    request_payload=SmartthingsApi.COMMAND_OPTIONAL_MODE,
+                    arguments=[samsung_fan_mode]
+                )
+            else:
+                await SmartthingsApi.async_send_command(
+                    session=self.websession,
+                    api_key=self.api_key,
+                    device_id=self.device_id,
+                    request_payload=SmartthingsApi.COMMAND_FAN_MODE,
+                    arguments=[samsung_fan_mode]
+                )
+            _LOGGER.debug("Set fan mode to " + samsung_fan_mode)
+        except Exception as e:
+            _LOGGER.exception(e)
