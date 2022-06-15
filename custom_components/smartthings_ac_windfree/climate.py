@@ -343,6 +343,14 @@ class SamsungAc(ClimateEntity, metaclass=ABCMeta):
         """Set new fan mode."""
         samsung_fan_mode = FAN_MODES_HASS_TO_SAMSUNG[fan_mode]
         try:
+            if self.fan_mode == FAN_DIFFUSE and fan_mode != FAN_MODES_HASS_TO_SAMSUNG[FAN_DIFFUSE]:
+                await SmartthingsApi.async_send_command(
+                    session=self.websession,
+                    api_key=self.api_key,
+                    device_id=self.device_id,
+                    request_payload=SmartthingsApi.COMMAND_OPTIONAL_MODE,
+                    arguments=["off"]
+                )
             if samsung_fan_mode == "windFree":
                 await SmartthingsApi.async_send_command(
                     session=self.websession,
