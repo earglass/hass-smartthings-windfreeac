@@ -11,7 +11,8 @@ class SmartthingsApi:
         "commands": [{"component": "main", "capability": "fanOscillationMode", "command": "setFanOscillationMode"}]}
     COMMAND_OPTIONAL_MODE = {"commands": [
         {"component": "main", "capability": "custom.airConditionerOptionalMode", "command": "setAcOptionalMode"}]}
-    COMMAND_FAN_MODE = {"commands": [{"component": "main", "capability": "fanMode", "command": "setFanMode"}]}
+    COMMAND_FAN_MODE = {
+        "commands": [{"component": "main", "capability": "airConditionerFanMode", "command": "setFanMode"}]}
     COMMAND_AC_MODE = {
         "commands": [{"component": "main", "capability": "airConditionerMode", "command": "setAirConditionerMode"}]}
     COMMAND_TARGET_TEMPERATURE = {"commands": [
@@ -24,7 +25,8 @@ class SmartthingsApi:
         return url, request_headers
 
     @staticmethod
-    async def async_send_command(session: ClientSession, api_key: str, device_id: str, request_payload: json, arguments=None):
+    async def async_send_command(session: ClientSession, api_key: str, device_id: str, request_payload: json,
+                                 arguments=None):
         # TODO: handling wrong/missing command
         if arguments:
             request_payload["commands"][0]["arguments"] = arguments
